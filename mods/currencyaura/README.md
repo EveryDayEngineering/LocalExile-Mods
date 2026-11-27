@@ -38,4 +38,4 @@ Editable in Waypoint's Mods panel, or in `data/mods/currencyaura.json`:
 
 ## LocalExile versions
 
-0.6.0-beta.
+0.6.0-beta and 0.6.1-beta.
