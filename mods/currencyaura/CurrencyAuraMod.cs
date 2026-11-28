@@ -29,6 +29,8 @@ public sealed class CurrencyAuraMod : IMod
         && !player.Paused && player.Connection.PlayerSent && player.PlayerLife > 0 && !player.RageRetired
         && Program.ModulesFor(player).Contains("Game") && !Game.HardcoreProgressBlocked(player) && GameEvents.AllowsLoot(player);
 
+    static bool InAreaFrame(Player player) => player.Area.Owned && player.Connection.WorldOutput.Started;
+
     async Task Tick(Player player, double seconds)
     {
         var c = choices;
@@ -40,7 +42,11 @@ public sealed class CurrencyAuraMod : IMod
             if (ground.PlayerDropped || items.ByHash(ground.Item.TypeHash) is not { } type || !Wanted(type, c)) continue;
             var (by, shared) = player.Instance.Ground.Origin(id);
             if (!shared && !ReferenceEquals(by, player)) continue;
-            if (player.Connection.LockstepClient && !player.Connection.WorldOutput.Has(id)) continue;
+            // As the game's gold auto-loot: inside the area's frame the removal is ordered after the item's create; outside
+            // it, only an item this connection already has a create for. Items re-sent on re-entering the area reach the
+            // client through the area's records, not this connection's output, so the check outside a frame alone would
+            // skip them for good.
+            if (player.Connection.LockstepClient && !InAreaFrame(player) && !player.Connection.WorldOutput.Has(id)) continue;
             if (Game.TakeGroundStack(player, id, ground) is not { } pickup) continue;
             mod.Log($"{type.Name} x{ground.Item.StackSize}");
             await Game.SendPickup(player, id, pickup);
